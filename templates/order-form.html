@@ -1,0 +1,91 @@
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header">
+    <h3>📋 Buat Delivery Order Baru</h3>
+    <button class="btn btn-sm btn-blue" @click="toggle" type="button">
+      <i class="fa-solid" :class="visible?'fa-minus':'fa-plus'"></i>
+      {{ visible ? 'Sembunyikan' : 'Buat DO Baru' }}
+    </button>
+  </div>
+  <transition name="fade">
+    <div class="card-body" v-show="visible">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;" @keyup="onKeyup">
+        <!-- Baris 1: Administrasi -->
+        <div class="field-group">
+          <label>Nomor DO</label>
+          <input type="text" v-model="newDO.nomor" readonly style="background:#f0f4f9;cursor:not-allowed;font-weight:700;letter-spacing:1px;">
+          <small style="color:var(--text-muted);margin-top:3px;display:block;">Format: DO + Tahun + Nomor Urut (otomatis)</small>
+        </div>
+        <div class="field-group">
+          <label>NIM Mahasiswa <span style="color:var(--danger)">*</span></label>
+          <input type="text" v-model="newDO.nim" placeholder="Contoh: 031234567" :class="{invalid: errors.nim}">
+          <span class="field-error-msg" v-if="errors.nim">{{ errors.nim }}</span>
+        </div>
+
+        <!-- Baris 2: Identitas & Paket -->
+        <div class="field-group">
+          <label>Nama Mahasiswa <span style="color:var(--danger)">*</span></label>
+          <input type="text" v-model="newDO.nama" placeholder="Nama lengkap mahasiswa" :class="{invalid: errors.nama}">
+          <span class="field-error-msg" v-if="errors.nama">{{ errors.nama }}</span>
+        </div>
+
+        <!-- Baris 3: Pemilihan -->
+        <div class="field-group">
+          <label>Paket Bahan Ajar <span style="color:var(--danger)">*</span></label>
+          <select v-model="newDO.paket" :class="{invalid: errors.paket}">
+            <option value="">-- Pilih Paket --</option>
+            <option v-for="(p, pi) in paket" :key="pi" :value="p.kode">{{ p.kode }} — {{ p.nama }}</option>
+          </select>
+          <span class="field-error-msg" v-if="errors.paket">{{ errors.paket }}</span>
+        </div>
+        <div class="field-group">
+          <label>Ekspedisi <span style="color:var(--danger)">*</span></label>
+          <select v-model="newDO.ekspedisi" :class="{invalid: errors.ekspedisi}">
+            <option value="">-- Pilih Ekspedisi --</option>
+            <option v-for="(e, ei) in pengirimanList" :key="ei" :value="e.kode">{{ e.nama }}</option>
+          </select>
+          <span class="field-error-msg" v-if="errors.ekspedisi">{{ errors.ekspedisi }}</span>
+        </div>
+        <div class="field-group">
+          <label>Tanggal Kirim <span style="color:var(--danger)">*</span></label>
+          <input type="date" v-model="newDO.tanggal" :class="{invalid: errors.tanggal}">
+          <small v-if="newDO.tanggal" style="color:var(--text-muted);margin-top:3px;display:block;">📅 {{ tanggalDisplay }}</small>
+          <span class="field-error-msg" v-if="errors.tanggal">{{ errors.tanggal }}</span>
+        </div>
+
+        <!-- Baris 4: Ringkasan -->
+        <div class="field-group">
+          <label>Total Harga</label>
+          <input type="text" :value="totalDisplay" readonly style="background:#f0f4f9;cursor:not-allowed;font-weight:700;color:var(--primary);">
+        </div>
+
+        <!-- Isi paket — v-if + v-for -->
+        <div class="field-group" style="grid-column:1/-1;" v-if="paketDetails.length">
+          <label style="margin-bottom:8px;">📚 Isi Paket</label>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;">
+            <div v-for="(mk, mki) in paketDetails" :key="mki"
+                 style="background:rgba(37,99,168,.04);border:1px solid rgba(37,99,168,.15);border-radius:8px;padding:10px;font-size:.8rem;">
+              <strong style="color:var(--primary-light);">{{ mk.kode }}</strong><br>
+              <span style="color:var(--text-secondary);">{{ mk.judul }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-group" style="grid-column:1/-1;">
+          <label>Catatan (Opsional)</label>
+          <textarea v-model="newDO.catatan" rows="2" placeholder="Catatan khusus pengiriman..."></textarea>
+        </div>
+
+        <div style="grid-column:1/-1;display:flex;gap:10px;justify-content:flex-end;">
+          <button class="btn btn-outline btn-sm" @click="reset" type="button">
+            <i class="fa-solid fa-rotate-left"></i> Reset
+          </button>
+          <!-- v-bind:disabled -->
+          <button class="btn btn-gold btn-sm" @click="createDO" type="button"
+                  :disabled="!newDO.nim||!newDO.nama||!newDO.ekspedisi||!newDO.paket||!newDO.tanggal">
+            <i class="fa-solid fa-check"></i> Buat Delivery Order
+          </button>
+        </div>
+      </div>
+    </div>
+  </transition>
+</div>

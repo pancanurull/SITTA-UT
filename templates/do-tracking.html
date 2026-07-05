@@ -1,0 +1,161 @@
+<div>
+  <!-- Cari Status Pengiriman -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="card-header"><h3>🔍 Cari Status Pengiriman</h3></div>
+    <div class="card-body">
+      <div class="form-row" style="gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="field-group" style="flex:1;min-width:300px;">
+          <label>Cari Delivery Order</label>
+          <input type="text" v-model="query" placeholder="Masukkan Nomor DO atau NIM Mahasiswa..."
+                 @keyup.enter="onEnter" @keyup.esc="onEsc"
+                 style="font-weight:600;letter-spacing:.5px;">
+        </div>
+        <button class="btn btn-blue" @click="search" type="button"><i class="fa-solid fa-search"></i> Cari</button>
+        <button class="btn btn-outline" @click="clearSearch" v-show="searched || selected" type="button">
+          <i class="fa-solid fa-xmark"></i> Bersihkan (Esc)
+        </button>
+      </div>
+      <p style="font-size:.82rem;color:var(--text-muted);margin-top:10px;">
+        💡 Contoh nomor DO:
+        <code v-for="(ex, ei) in doExamples" :key="ei"
+              @click="cariContoh(ex)"
+              style="background:rgba(37,99,168,.08);padding:2px 7px;border-radius:4px;cursor:pointer;font-size:.8rem;margin:0 3px;">
+          {{ ex }}
+        </code>
+      </p>
+
+      <!-- Hasil Tracking — v-if -->
+      <transition name="fade">
+        <div class="tracking-result" v-if="selected">
+          <div class="tracking-header-card" style="margin-bottom: 24px;">
+            <div>
+              <h3>{{ selected.nama || '-' }}</h3>
+              <div class="nim">NIM: {{ selected.nim || '-' }} &nbsp;|&nbsp; No. DO: <strong>{{ selected.nomorDO }}</strong></div>
+              <div class="expedition">📦 {{ selected.ekspedisi || '-' }} · Paket {{ selected.paket || '-' }}</div>
+            </div>
+            <!-- v-text-->
+            <div class="tracking-status-badge" v-text="selected.status || '-'"></div>
+          </div>
+
+          <div class="card" style="margin-bottom: 24px;">
+            <div class="card-body">
+              <div class="progress-section">
+                <div class="progress-label">
+                  <span>Progress Pengiriman</span><span>{{ progress }}%</span>
+                </div>
+                <div class="progress-bar" style="height:14px;">
+                  <!-- v-bind:style -->
+                  <div class="progress-fill" :style="{ width: progress + '%' }"></div>
+                </div>
+              </div>
+              <div class="detail-grid">
+                <div class="detail-item"><div class="detail-label">Ekspedisi</div><div class="detail-value">🚚 {{ selected.ekspedisi||'-' }}</div></div>
+                <div class="detail-item"><div class="detail-label">Tanggal Kirim</div><div class="detail-value">📅 {{ formatTanggal(selected.tanggalKirim) }}</div></div>
+                <div class="detail-item"><div class="detail-label">Update Perjalanan</div><div class="detail-value">{{ selected.perjalanan ? selected.perjalanan.length : 0 }} kali</div></div>
+                <div class="detail-item"><div class="detail-label">Total Pembayaran</div><div class="detail-value">💰 {{ formatRupiah(selected.total) }}</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>📍 Perjalanan Paket</h3>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span class="badge badge-info">{{ selected.perjalanan ? selected.perjalanan.length : 0 }} Update</span>
+                <button class="btn btn-sm btn-green" @click="showProgressForm=!showProgressForm" type="button">
+                  <i class="fa-solid fa-plus"></i> Tambah Progress
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <!-- Form tambah progress — v-show -->
+              <div class="progress-add-form" v-show="showProgressForm">
+                <div class="form-row" style="align-items:flex-end;gap:10px;">
+                  <div class="field-group" style="flex:1;">
+                    <label>Keterangan Status Baru</label>
+                    <!-- @keyup -->
+                    <input type="text" v-model="newProgressKet"
+                           placeholder="Contoh: Paket tiba di gudang Jakarta"
+                           @keyup="onProgressKeyup">
+                    <small style="color:var(--text-muted);margin-top:3px;display:block;">Enter = simpan · Esc = batal</small>
+                  </div>
+                  <button class="btn btn-green btn-sm" @click="tambahProgress" type="button">
+                    <i class="fa-solid fa-check"></i> Simpan
+                  </button>
+                  <button class="btn btn-outline btn-sm" @click="showProgressForm=false;newProgressKet=''" type="button">Batal</button>
+                </div>
+              </div>
+
+              <!-- Timeline — v-for dengan index  -->
+              <div class="timeline" style="margin-top:12px;">
+                <div class="timeline-item" v-for="(pItem, pi) in selected.perjalanan" :key="pi">
+                  <div class="timeline-dot" :class="{ active: pi === selected.perjalanan.length - 1 }"></div>
+                  <div class="timeline-content">
+                    <div class="status-text">{{ pItem.keterangan }}</div>
+                    <div class="time-text">🕐 {{ pItem.waktu }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <div v-if="searched && !selected" style="margin-top:20px;text-align:center;padding:36px 20px;background:rgba(239,68,68,.04);border:2px dashed rgba(239,68,68,.2);border-radius:var(--radius);">
+        <div style="font-size:2.5rem;margin-bottom:12px;">📭</div>
+        <h4 style="color:var(--danger);margin-bottom:6px;">Nomor DO tidak ditemukan</h4>
+        <p style="color:var(--text-muted);font-size:.88rem;">Pastikan nomor DO atau NIM benar. Contoh: <strong>DO2025-001</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Riwayat DO Terbaru -->
+  <div class="card">
+    <div class="card-header">
+      <h3>📜 Riwayat Delivery Order Terbaru</h3>
+      <span class="badge badge-primary">{{ riwayatDO.length }} DO</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:125px;">No. DO</th>
+              <th style="width:110px;">NIM</th>
+              <th>Nama Mahasiswa</th>
+              <th style="width:150px;">Ekspedisi</th>
+              <th style="width:150px;">Tanggal Kirim</th>
+              <th style="width:130px;text-align:right;">Total</th>
+              <th style="width:120px;">Status</th>
+              <th style="width:110px;text-align:center;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="!riwayatDO.length"><td colspan="8"><div class="empty-state"><div class="icon">📭</div><p>Belum ada riwayat DO</p></div></td></tr>
+            <!-- v-for dengan index -->
+            <tr v-for="(do_, di) in riwayatDO" :key="do_.nomorDO || di">
+              <td><code style="background:rgba(37,99,168,.08);padding:2px 7px;border-radius:4px;font-size:.8rem;" v-text="do_.nomorDO"></code></td>
+              <td><code>{{ do_.nim }}</code></td>
+              <td>{{ do_.nama }}</td>
+              <td>{{ do_.ekspedisi }}</td>
+              <td>{{ formatTanggal(do_.tanggalKirim) }}</td>
+              <td style="text-align:right;">{{ formatRupiah(do_.total) }}</td>
+              <td>
+                <!-- v-bind:class -->
+                <span class="badge"
+                      :class="do_.status==='Selesai'?'badge-success':do_.status==='Dalam Perjalanan'?'badge-info':'badge-warning'">
+                  {{ do_.status }}
+                </span>
+              </td>
+              <td style="text-align:center;">
+                <button class="btn btn-sm btn-outline" @click="cariDO(do_.nomorDO)" type="button" style="font-size:.75rem;padding:5px 10px;">
+                  <i class="fa-solid fa-search"></i> Lihat
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

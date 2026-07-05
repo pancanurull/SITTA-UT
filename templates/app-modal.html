@@ -1,0 +1,9 @@
+<transition name="fade">
+    <div class="modal-overlay" :class="{active: show}" v-show="show" @click="overlayClick">
+      <div class="modal" :style="modalStyle">
+        <button class="modal-close" @click="close" type="button">✕</button>
+        <h3 :style="danger ? 'color:var(--danger)' : ''">{{ title }}</h3>
+        <slot></slot>
+      </div>
+    </div>
+  </transition>

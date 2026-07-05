@@ -1,0 +1,8 @@
+<div class="tooltip-wrap" @mouseover="showTip=true" @mouseleave="showTip=false">
+    <!-- v-if / v-else-if / v-else  -->
+    <span v-if="item.qty===0"            :class="badgeClass">🔴 Kosong</span>
+    <span v-else-if="item.qty<item.safety" :class="badgeClass">⚠️ Menipis</span>
+    <span v-else                          :class="badgeClass">✅ Aman</span>
+    <!-- v-show + v-html  -->
+    <div class="tooltip-tip" v-show="showTip && item.catatanHTML" v-html="item.catatanHTML"></div>
+  </div>

@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SITTA - Dashboard | Universitas Terbuka</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== LOGIN FORM COMPONENT ===== -->
+  <login-form 
+    v-if="!user.id" 
+    @login-success="onLoginSuccess" 
+    @toast="onToast">
+  </login-form>
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside v-else class="app-layout">
+    <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-brand">
+        <div class="brand-logo"><img src="assets/img/logo-ut.png" alt="Logo UT"></div>
+        <div class="brand-text"><h2>SITTA</h2><span>Universitas Terbuka</span></div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-label">Menu Utama</div>
+
+        <button class="nav-item" :class="{ active: tab==='dashboard' && subSection==='dashboard' }"
+                @click="showTab('dashboard')" type="button">
+          <span class="icon">🏠</span> Dashboard
+        </button>
+
+        <button class="nav-item" :class="{ active: tab==='stok' }"
+                @click="showTab('stok')" type="button">
+          <span class="icon">📚</span> Informasi Bahan Ajar
+        </button>
+
+        <button class="nav-item" :class="{ active: tab==='tracking' || tab==='order' }"
+                @click="showTab('tracking')" type="button">
+          <span class="icon">🚚</span> Tracking Pengiriman
+        </button>
+
+        <button class="nav-item" :class="{ active: subSection==='monitoring' || subSection==='rekap' }"
+                @click="toggleSubmenu" type="button">
+          <span class="icon">📊</span> Laporan
+          <span class="nav-arrow" id="arrow-laporan">›</span>
+        </button>
+        <div class="nav-submenu" id="laporan-sub">
+          <button class="nav-subitem" :class="{ active: subSection==='monitoring' }"
+                  @click="showSubSection('monitoring')" type="button">
+            <span>📈</span> Monitoring Progress DO
+          </button>
+          <button class="nav-subitem" :class="{ active: subSection==='rekap' }"
+                  @click="showSubSection('rekap')" type="button">
+            <span>📋</span> Rekap Bahan Ajar
+          </button>
+        </div>
+
+        <button class="nav-item" :class="{ active: subSection==='histori' }"
+                @click="showSubSection('histori')" type="button">
+          <span class="icon">🕐</span> Histori Transaksi
+        </button>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar">👤</div>
+        <div class="user-info">
+          <div class="name">{{ user.nama || 'Admin' }}</div>
+          <div class="role">{{ user.role || 'Administrator' }}</div>
+        </div>
+        <button class="logout-btn" @click="handleLogout" title="Logout" type="button">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN CONTENT ===================== -->
+  <div class="main-content" id="mainContent">
+    <header class="topbar">
+      <div class="topbar-left" style="display:flex; align-items:center; gap:12px;">
+        <button class="menu-btn" @click="toggleSidebar" title="Toggle sidebar" type="button">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div>
+          <h1 id="pageTitle">Dashboard</h1>
+          <div class="breadcrumb" id="pageBreadcrumb">SITTA › Dashboard</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="greeting-badge">
+          <span>{{ greetingInfo.icon }}</span>
+          <span>{{ greetingInfo.text }}</span>
+        </div>
+        <div class="time-display">
+          <div id="clockDisplay"></div>
+          <div id="dateDisplay"></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="content-area">
+
+      <!-- ===== TAB: DASHBOARD ===== -->
+      <section v-show="tab==='dashboard' && subSection==='dashboard'">
+        <!-- Stat Cards — computed property -->
+        <div class="stat-grid" style="margin-bottom: 24px;">
+          <div class="stat-card">
+            <div class="stat-icon blue"><span>📚</span></div>
+            <div class="stat-info">
+              <div class="label">Total Bahan Ajar</div>
+              <!-- v-text directive  -->
+              <div class="value" v-text="dashStokTotal + ' Judul'"></div>
+              <div class="change">Stok: {{ dashStokQtyTotal.toLocaleString('id-ID') }}</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange"><span>🚚</span></div>
+            <div class="stat-info">
+              <div class="label">DO Aktif</div>
+              <div class="value">{{ dashDOAktif }}</div>
+              <div class="change">{{ dashDOAktif }} sedang berjalan</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green"><span>✅</span></div>
+            <div class="stat-info">
+              <div class="label">Terkirim</div>
+              <div class="value">{{ dashTerkirim }}</div>
+              <div class="change">{{ dashTerkirim }} DO selesai</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon purple"><span>🏫</span></div>
+            <div class="stat-info">
+              <div class="label">UT-Daerah</div>
+              <div class="value">{{ upbjjList.length }}</div>
+              <div class="change">Unit aktif</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Access -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header"><h3>⚡ Akses Cepat</h3></div>
+          <div class="card-body">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px;">
+              <button @click="showTab('tracking')" type="button"
+                style="background:linear-gradient(135deg,#1a3c5e,#2563a8);color:white;border-radius:12px;padding:20px;border:none;cursor:pointer;text-align:center;">
+                <div style="font-size:32px;margin-bottom:8px;">🚚</div>
+                <div style="font-weight:700;font-size:.9rem;">Tracking</div>
+              </button>
+              <button @click="showTab('stok')" type="button"
+                style="background:linear-gradient(135deg,#10b981,#059669);color:white;border-radius:12px;padding:20px;border:none;cursor:pointer;text-align:center;">
+                <div style="font-size:32px;margin-bottom:8px;">📚</div>
+                <div style="font-weight:700;font-size:.9rem;">Stok Bahan Ajar</div>
+              </button>
+              <button @click="showSubSection('monitoring')" type="button"
+                style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border-radius:12px;padding:20px;border:none;cursor:pointer;text-align:center;">
+                <div style="font-size:32px;margin-bottom:8px;">📈</div>
+                <div style="font-weight:700;font-size:.9rem;">Monitoring DO</div>
+              </button>
+              <button @click="showSubSection('histori')" type="button"
+                style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:white;border-radius:12px;padding:20px;border:none;cursor:pointer;text-align:center;">
+                <div style="font-size:32px;margin-bottom:8px;">🕐</div>
+                <div style="font-weight:700;font-size:.9rem;">Histori</div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transaksi Terbaru -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🕐 Transaksi Terbaru</h3>
+            <button class="btn btn-sm btn-outline" @click="showSubSection('histori')" type="button">Lihat Semua</button>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:75px;">ID</th>
+                    <th style="width:130px;">Tanggal</th>
+                    <th style="width:115px;">No. DO</th>
+                    <th>Nama Mahasiswa</th>
+                    <th style="width:120px;text-align:right;">Total</th>
+                    <th style="width:110px;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="!latestHistori.length">
+                    <td colspan="6"><div class="empty-state"><div class="icon">📭</div><p>Belum ada transaksi</p></div></td>
+                  </tr>
+                  <!-- v-for dengan index (Indikator 6) -->
+                  <tr v-for="(h, idx) in latestHistori.slice(0,5)" :key="h.id || idx">
+                    <td><strong>{{ h.id }}</strong></td>
+                    <td>{{ h.tanggal | tglIndo }}</td>
+                    <td><code style="background:rgba(37,99,168,.08);padding:2px 7px;border-radius:4px;font-size:.8rem;">{{ h.noDO }}</code></td>
+                    <td>{{ h.namaMahasiswa }}</td>
+                    <td style="text-align:right;">{{ h.total | rupiah }}</td>
+                    <td><span class="badge" :class="statusBadgeClass(h.status)">{{ h.status }}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== TAB: STOK (ba-stock-table) ===== -->
+      <section v-show="tab==='stok'">
+        <ba-stock-table
+          v-if="!loading"
+          :stok-awal="stokList"
+          :upbjj-list="upbjjList"
+          :upbjj-nama="upbjjNama"
+          :kategori-list="kategoriList"
+          @toast="onToast"
+          @stok-berubah="onStokBerubah">
+        </ba-stock-table>
+      </section>
+
+      <section v-show="tab==='tracking'">
+        <order-form
+          v-if="!loading"
+          :paket="paketList"
+          :pengiriman-list="pengirimanList"
+          :mk-katalog="mkKatalog"
+          :all-tracking="trackingList"
+          @do-dibuat="onDODibuat"
+          @toast="onToast">
+        </order-form>
+
+        <do-tracking
+          v-if="!loading"
+          ref="doTracking"
+          :tracking-list="trackingList"
+          :paket="paketList"
+          :mk-katalog="mkKatalog"
+          @toast="onToast">
+        </do-tracking>
+      </section>
+
+      <!-- ===== SUB-SECTION: MONITORING ===== -->
+      <section v-show="tab==='dashboard' && subSection==='monitoring'">
+        <div class="stat-grid" style="margin-bottom: 24px;">
+          <div class="stat-card"><div class="stat-icon blue"><span>📦</span></div><div class="stat-info"><div class="label">Total DO</div><div class="value">{{ latestMonitoring.length }}</div></div></div>
+          <div class="stat-card"><div class="stat-icon orange"><span>⚙️</span></div><div class="stat-info"><div class="label">Diproses</div><div class="value">{{ monitoringDiproses }}</div></div></div>
+          <div class="stat-card"><div class="stat-icon blue"><span>🚚</span></div><div class="stat-info"><div class="label">Dalam Perjalanan</div><div class="value">{{ monitoringDalamPerjalanan }}</div></div></div>
+          <div class="stat-card"><div class="stat-icon green"><span>✅</span></div><div class="stat-info"><div class="label">Selesai</div><div class="value">{{ monitoringSelesai }}</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>📈 Monitoring Progress Delivery Order</h3><span class="badge badge-info">Update Otomatis</span></div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:115px;">No. DO</th>
+                    <th>UT-Daerah</th>
+                    <th style="width:80px;text-align:center;">Item</th>
+                    <th style="width:110px;">Status</th>
+                    <th style="width:120px;">Tanggal</th>
+                    <th style="width:140px;">Progress</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="!latestMonitoring.length"><td colspan="6"><div class="empty-state"><div class="icon">📭</div><p>Tidak ada data</p></div></td></tr>
+                  <tr v-for="(d, di) in latestMonitoring.slice().reverse()" :key="d.noDO || di">
+                    <td><code style="background:rgba(37,99,168,.08);padding:2px 7px;border-radius:4px;font-size:.8rem;">{{ d.noDO }}</code></td>
+                    <td>{{ d.utDaerah }}</td>
+                    <td style="text-align:center;"><strong>{{ d.jumlahItem }}</strong></td>
+                    <td><span class="badge" :class="statusBadgeClass(d.status)">{{ d.status }}</span></td>
+                    <td>{{ d.tanggal | tglIndo }}</td>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="progress-bar" style="flex:1;height:8px;">
+                          <div class="progress-fill" :style="{ width: (d.progress||0)+'%' }"></div>
+                        </div>
+                        <span style="font-size:.78rem;font-weight:700;color:var(--text-secondary);min-width:36px;">{{ d.progress||0 }}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SUB-SECTION: REKAP ===== -->
+      <section v-show="tab==='dashboard' && subSection==='rekap'">
+        <div class="stat-grid" style="margin-bottom: 24px;">
+          <div class="stat-card"><div class="stat-icon blue"><span>📚</span></div><div class="stat-info"><div class="label">Total Judul</div><div class="value">{{ latestStok.length }}</div></div></div>
+          <div class="stat-card"><div class="stat-icon green"><span>✅</span></div><div class="stat-info"><div class="label">Stok Aman</div><div class="value">{{ rekapAman }}</div></div></div>
+          <div class="stat-card"><div class="stat-icon orange"><span>⚠️</span></div><div class="stat-info"><div class="label">Stok Menipis</div><div class="value">{{ rekapMenipis }}</div></div></div>
+          <div class="stat-card"><div class="stat-icon red"><span>🔴</span></div><div class="stat-info"><div class="label">Stok Kosong</div><div class="value">{{ rekapKosong }}</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>📋 Rekap Bahan Ajar</h3>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <!-- v-model -->
+              <input type="text" v-model="filterRekapQ" placeholder="🔍 Cari..."
+                style="padding:8px 14px;border:2px solid var(--border);border-radius:8px;font-size:.85rem;outline:none;width:200px;">
+              <button class="btn btn-sm btn-gold" @click="cetakRekap" type="button">
+                <i class="fa-solid fa-print"></i> Cetak
+              </button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:50px;text-align:center;">No</th>
+                    <th style="width:110px;">Kode</th>
+                    <th>Judul</th>
+                    <th style="width:115px;">Kategori</th>
+                    <th style="width:130px;">UPBJJ</th>
+                    <th style="width:85px;">Rak</th>
+                    <th style="width:75px;text-align:center;">Qty</th>
+                    <th style="width:75px;text-align:center;">Safety</th>
+                    <th style="width:110px;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="!filteredRekap.length"><td colspan="9"><div class="empty-state"><div class="icon">📭</div><h4>Tidak ada data</h4></div></td></tr>
+                  <!-- v-for object + index-->
+                  <tr v-for="(item, idx) in filteredRekap" :key="item.kode">
+                    <td>{{ idx + 1 }}</td>
+                    <td><strong v-text="item.kode"></strong></td>
+                    <td>{{ item.judul }}</td>
+                    <td>{{ item.kategori }}</td>
+                    <td style="font-size:.85rem;">{{ upbjjNama[item.upbjj] || item.upbjj }}</td>
+                    <td><code>{{ item.lokasiRak }}</code></td>
+                    <td style="text-align:center;"><strong>{{ item.qty }}</strong></td>
+                    <td style="text-align:center;">{{ item.safety }}</td>
+                    <td>
+                      <!-- v-if / v-else-if / v-else -->
+                      <span v-if="item.qty===0" class="badge badge-danger">Kosong</span>
+                      <span v-else-if="item.qty < item.safety" class="badge badge-warning">Menipis</span>
+                      <span v-else class="badge badge-success">Aman</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== SUB-SECTION: HISTORI ===== -->
+      <section v-show="tab==='dashboard' && subSection==='histori'">
+        <div class="card">
+          <div class="card-header">
+            <h3>🕐 Histori Delivery Order</h3>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <input type="text" v-model="filterHistoriQ" placeholder="🔍 Cari DO, nama, status..."
+                style="padding:7px 12px;border:2px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;width:180px;">
+              <select v-model="filterHistoriStatus" @change="filterHistoriStatus = filterHistoriStatus"
+                style="padding:7px 10px;border:2px solid var(--border);border-radius:8px;font-size:.82rem;outline:none;width:150px;">
+                <option value="">Semua Status</option>
+                <option value="Selesai">Selesai</option>
+                <option value="Dalam Perjalanan">Dalam Perjalanan</option>
+                <option value="Diproses">Diproses</option>
+              </select>
+            </div>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:80px;">ID</th>
+                    <th style="width:140px;">Tanggal</th>
+                    <th style="width:120px;">No. DO</th>
+                    <th>Nama Mahasiswa</th>
+                    <th style="width:150px;">Ekspedisi</th>
+                    <th style="width:130px;text-align:right;">Total</th>
+                    <th style="width:120px;">Status</th>
+                    <th style="width:110px;text-align:center;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="!filteredHistori.length"><td colspan="8"><div class="empty-state"><div class="icon">📭</div><h4>Tidak ada data histori</h4></div></td></tr>
+                  <tr v-for="(h, hi) in filteredHistori" :key="h.id || hi">
+                    <td><strong>{{ h.id || '-' }}</strong></td>
+                    <td>{{ h.tanggal | tglIndo }}</td>
+                    <td><code style="background:rgba(37,99,168,.08);padding:2px 7px;border-radius:4px;font-size:.8rem;">{{ h.noDO }}</code></td>
+                    <td>{{ h.namaMahasiswa }}</td>
+                    <td>{{ h.ekspedisi }}</td>
+                    <td style="text-align:right;">{{ h.total | rupiah }}</td>
+                    <td><span class="badge" :class="statusBadgeClass(h.status)">{{ h.status }}</span></td>
+                    <td style="text-align:center;">
+                      <button class="btn btn-sm btn-outline" @click="lihatTracking(h.noDO)" type="button"
+                        style="font-size:.75rem;padding:5px 10px;">
+                        <i class="fa-solid fa-truck"></i> Tracking
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /content-area -->
+
+    <footer class="app-footer">
+      <div class="footer-content">
+        <span>&copy; 2023 Universitas Terbuka. All Rights Reserved.</span>
+        <span class="version-tag">Versi Aplikasi 3.1.0-Production</span>
+      </div>
+    </footer>
+  </div><!-- /main-content -->
+    </aside><!-- /app-layout -->
+
+    <!-- ===== TOAST (Global) ===== -->
+    <transition name="fade">
+      <div v-show="toastVisible" class="toast"
+           :class="toastType==='success'?'success':toastType==='warning'?'warning':toastType==='info'?'info':''"
+           style="position:fixed;top:20px;right:20px;z-index:9999;min-width:240px;max-width:380px;">
+        {{ toastMsg }}
+      </div>
+    </transition>
+
+    <!-- MODAL SUKSES DO DIBUAT (Global Overlay) -->
+    <div class="modal-overlay" id="modal-sukses-do">
+      <div class="modal" style="max-width:440px;">
+        <div class="success-modal-content">
+          <div style="font-size:52px; margin-bottom:12px;">🎉</div>
+
+          <h3 style="color:var(--success); font-size:1.1rem;">
+            Delivery Order Berhasil Dibuat!
+          </h3>
+
+          <p style="color:var(--text-secondary); font-size:0.85rem; margin:8px 0;">
+            Nomor DO Anda:
+          </p>
+
+          <div class="do-number-display" id="modal-do-number">
+            -
+          </div>
+
+          <div style="display:flex; gap:10px; justify-content:center; margin-top:20px;">
+            <button class="btn btn-blue" 
+              onclick="navigator.clipboard.writeText(document.getElementById('modal-do-number').innerText); sittaApp.showToast('Nomor DO disalin!', 'success')">
+              <i class="fa-solid fa-copy"></i> Salin
+            </button>
+            
+            <button class="btn btn-gold" 
+              onclick="sittaApp.lihatTracking(document.getElementById('modal-do-number').innerText); document.getElementById('modal-sukses-do').classList.remove('active')">
+              <i class="fa-solid fa-magnifying-glass"></i> Lacak
+            </button>
+            
+            <button class="btn btn-outline" 
+              onclick="document.getElementById('modal-sukses-do').classList.remove('active')">
+              Tutup
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+</div><!-- /#app -->
+
+
+<!-- SCRIPTS — urutan penting -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<script src="js/services/api.js"></script>
+<script src="js/components/login-form.js"></script>
+<script src="js/components/status-badge.js"></script>
+<script src="js/components/app-modal.js"></script>
+<script src="js/components/stock-table.js"></script>
+<script src="js/components/order-form.js"></script>
+<script src="js/components/do-tracking.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

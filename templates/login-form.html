@@ -1,0 +1,91 @@
+<div class="login-page">
+  <div class="login-left">
+    <div class="login-logo">
+      <img src="assets/img/logo-ut.png" alt="Logo UT" style="width:100%; height:100%; object-fit:contain;">
+    </div>
+    <h1>SITTA<br><span>Universitas Terbuka</span></h1>
+    <p>Sistem Informasi Tiras dan Transaksi Bahan Ajar UT-Daerah</p>
+    <div class="login-decorations">
+      <div class="deco-dot active"></div>
+      <div class="deco-dot"></div>
+      <div class="deco-dot"></div>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="login-form-wrapper">
+      <h2>Selamat Datang 👋</h2>
+      <p class="subtitle">Masuk ke akun SITTA Anda untuk melanjutkan</p>
+
+      <div class="form-group">
+        <label for="email">Alamat Email</label>
+        <div class="input-wrapper">
+          <i class="icon fa-solid fa-envelope"></i>
+          <input type="email" v-model="email" placeholder="contoh@ut.ac.id" @keyup.enter="handleLogin">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrapper">
+          <i class="icon fa-solid fa-lock"></i>
+          <input :type="showPass ? 'text' : 'password'" v-model="password" placeholder="Masukkan password" @keyup.enter="handleLogin">
+          <button class="toggle-pass" @click="showPass = !showPass" type="button">
+            <i class="fa-solid" :class="showPass ? 'fa-eye-slash' : 'fa-eye'"></i>
+          </button>
+        </div>
+        <div class="forgot-row">
+          <button class="link-btn" @click="activeModal = 'lupa'" type="button">Lupa Password?</button>
+        </div>
+      </div>
+
+      <button class="btn-primary" @click="handleLogin" :disabled="loading" type="button">
+        <span v-if="loading" class="spinner"></span>
+        <span v-else>Masuk</span>
+      </button>
+
+      <div class="divider">atau</div>
+
+      <button class="btn-secondary" @click="activeModal = 'daftar'" type="button">
+        Belum punya akun? Daftar Sekarang
+      </button>
+
+      <p style="text-align:center; margin-top:20px; font-size:0.78rem; color:var(--text-muted);">
+        Akun demo: <strong>admin@ut.ac.id</strong> / <strong>admin123</strong>
+      </p>
+    </div>
+  </div>
+
+  <!-- Modal: Lupa Password -->
+  <div class="modal-overlay" :class="{ active: activeModal === 'lupa' }" @click.self="activeModal = null">
+    <div class="modal">
+      <button class="modal-close" @click="activeModal = null" type="button">✕</button>
+      <div style="font-size:40px; text-align:center; margin-bottom:16px;">🔑</div>
+      <h3 style="text-align:center;">Lupa Password?</h3>
+      <p style="text-align:center; color:var(--text-secondary); font-size:0.85rem; margin-bottom:20px;">
+        Masukkan email Anda dan kami akan mengirimkan tautan untuk mengatur ulang password.
+      </p>
+      <div class="form-group">
+        <label>Alamat Email</label>
+        <div class="input-wrapper">
+          <i class="icon fa-solid fa-envelope"></i>
+          <input type="email" placeholder="Email terdaftar Anda">
+        </div>
+      </div>
+      <button class="btn-primary" @click="handleReset" type="button" style="margin-top:0;">Kirim Tautan Reset</button>
+    </div>
+  </div>
+
+  <!-- Modal: Daftar -->
+  <div class="modal-overlay" :class="{ active: activeModal === 'daftar' }" @click.self="activeModal = null">
+    <div class="modal">
+      <button class="modal-close" @click="activeModal = null" type="button">✕</button>
+      <div style="font-size:40px; text-align:center; margin-bottom:16px;">🎓</div>
+      <h3 style="text-align:center;">Daftar Akun Baru</h3>
+      <p style="text-align:center; color:var(--text-secondary); font-size:0.85rem; margin-bottom:16px;">
+        Pendaftaran akun dilakukan oleh admin SITTA pusat. Silakan hubungi administrator Anda.
+      </p>
+      <button class="btn-primary" @click="activeModal = null" type="button" style="margin-top:0;">Mengerti</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,116 @@
+var ApiService = (function () {
+  'use strict';
+
+  // ===== DATA INLINE FALLBACK (isi JSON) =====
+  // Digunakan saat fetch gagal (buka via file://)
+  var FALLBACK = {
+    upbjjList: ["0TMP01","0JKT01","0SBY02","0MLG01","0UPBJJBDG"],
+    upbjjNama: {"0TMP01":"Serang","0JKT01":"Jakarta","0SBY02":"Surabaya","0MLG01":"Malang","0UPBJJBDG":"Bandung"},
+    kategoriList: ["BMP","Praktikum","MK Wajib","MK Pilihan"],
+    pengirimanList: [
+      {kode:"JNE Regular",nama:"JNE Regular"},{kode:"JNE Express",nama:"JNE Express"},
+      {kode:"Pos Indonesia",nama:"Pos Indonesia"},{kode:"SiCepat Express",nama:"SiCepat Express"},
+      {kode:"J&T Express",nama:"J&T Express"}
+    ],
+    paket: [
+      {kode:"PKT001",nama:"Paket Dasar (3 MK)",isi:["ASIP4301","EKMA4216","EKMA4310"],harga:185000},
+      {kode:"PKT002",nama:"Paket Semester 2 (4 MK)",isi:["ASIP4301","MSIM4309","EKMA4216","EKMA4310"],harga:289000},
+      {kode:"PKT003",nama:"Paket Semester 3 (2 MK)",isi:["BIOL4211","PAUD4401"],harga:143000},
+      {kode:"PKT004",nama:"Paket Semester 4 (3 MK)",isi:["MSIM4308","ASIP4301","EKMA4310"],harga:247000}
+    ],
+    mkKatalog: {
+      "ASIP4301":{kode:"ASIP4301",judul:"Pengantar Ilmu Komunikasi"},
+      "EKMA4216":{kode:"EKMA4216",judul:"Manajemen Keuangan"},
+      "EKMA4310":{kode:"EKMA4310",judul:"Kepemimpinan"},
+      "BIOL4211":{kode:"BIOL4211",judul:"Mikrobiologi Dasar"},
+      "PAUD4401":{kode:"PAUD4401",judul:"Perkembangan Anak Usia Dini"},
+      "MSIM4309":{kode:"MSIM4309",judul:"Pemrograman Berbasis Web"},
+      "MSIM4308":{kode:"MSIM4308",judul:"Pemrograman Berorientasi Objek"}
+    },
+    stok: [
+      {kode:"ASIP4301",judul:"Pengantar Ilmu Komunikasi",   kategori:"BMP",      upbjj:"0TMP01",   lokasiRak:"A-01",harga:65000,qty:548,safety:100,catatanHTML:"<strong>Stok aman</strong>, edisi terbaru tersedia",                       cover:"assets/img/pengantar_komunikasi.jpg"},
+      {kode:"EKMA4216",judul:"Manajemen Keuangan",          kategori:"BMP",      upbjj:"0JKT01",   lokasiRak:"B-02",harga:70000,qty:392,safety:80, catatanHTML:"<em>Perpustakaan digital tersedia</em>",                                cover:"assets/img/manajemen_keuangan.jpg"},
+      {kode:"EKMA4310",judul:"Kepemimpinan",                kategori:"MK Wajib", upbjj:"0SBY02",   lokasiRak:"C-03",harga:60000,qty:278,safety:50, catatanHTML:"<span style='color:green'>Rekomendasi untuk Manajemen</span>",           cover:"assets/img/kepemimpinan.jpg"},
+      {kode:"BIOL4211",judul:"Mikrobiologi Dasar",          kategori:"BMP",      upbjj:"0MLG01",   lokasiRak:"D-04",harga:75000,qty:165,safety:60, catatanHTML:"<strong style='color:orange'>Perlu pemesanan ulang bulan depan</strong>", cover:"assets/img/mikrobiologi.jpg"},
+      {kode:"PAUD4401",judul:"Perkembangan Anak Usia Dini", kategori:"MK Pilihan",upbjj:"0UPBJJBDG",lokasiRak:"E-05",harga:68000,qty:204,safety:70, catatanHTML:"Update versi terbaru tersedia",                                        cover:"assets/img/paud_perkembangan.jpeg"},
+      {kode:"MSIM4309",judul:"Pemrograman Berbasis Web",    kategori:"Praktikum",upbjj:"0TMP01",   lokasiRak:"F-06",harga:72000,qty:12, safety:40, catatanHTML:"<strong style='color:red'>⚠️ Stok menipis, urgent order!</strong>",       cover:"assets/img/pemrograman_berbasis_web.jpg"},
+      {kode:"MSIM4308",judul:"Pemrograman Berorientasi Objek",kategori:"Praktikum",upbjj:"0JKT01",lokasiRak:"G-07",harga:70000,qty:0,  safety:30, catatanHTML:"<strong style='color:red'>Stok kosong, perlu pemesanan segera</strong>",cover:"assets/img/pemrograman_berorientasi_objek.jpg"}
+    ],
+    tracking: [
+      {nomorDO:"DO2023-001",nama:"Rina Wulandari",nim:"031234567",status:"Selesai",ekspedisi:"JNE Regular",tanggalKirim:"2023-09-10",paket:"PKT001",total:185000,perjalanan:[
+        {waktu:"10/09/2023 08:12:20",keterangan:"Penerimaan di Loket: UT Pusat, Pondok Cabe. Pengirim: Universitas Terbuka"},
+        {waktu:"10/09/2023 13:07:56",keterangan:"Tiba di Hub JNE: Tangerang Selatan"},
+        {waktu:"10/09/2023 17:30:10",keterangan:"Diteruskan ke Kantor Tujuan: Jakarta Selatan"},
+        {waktu:"11/09/2023 09:45:00",keterangan:"Proses antar ke alamat tujuan"},
+        {waktu:"11/09/2023 14:20:05",keterangan:"Selesai diantar. Penerima: Rina Wulandari"}]},
+      {nomorDO:"DO2023-002",nama:"Agus Pranoto",nim:"045678901",status:"Selesai",ekspedisi:"Pos Indonesia",tanggalKirim:"2023-09-12",paket:"PKT002",total:289000,perjalanan:[
+        {waktu:"12/09/2023 08:00:00",keterangan:"Penerimaan di Loket: UT Pusat, Pondok Cabe. Pengirim: Universitas Terbuka"},
+        {waktu:"12/09/2023 14:07:56",keterangan:"Tiba di Hub Pos: Jakarta Selatan"},
+        {waktu:"12/09/2023 18:30:10",keterangan:"Diteruskan ke Kantor Kota Bandung"},
+        {waktu:"13/09/2023 10:15:33",keterangan:"Tiba di Hub Pos: Kota Bandung"},
+        {waktu:"13/09/2023 15:06:12",keterangan:"Proses antar ke Cimahi"},
+        {waktu:"13/09/2023 19:00:00",keterangan:"Selesai diantar. Penerima: Agus Pranoto"}]},
+      {nomorDO:"DO2025-001",nama:"Rina Wulandari",nim:"031234567",status:"Dalam Perjalanan",ekspedisi:"JNE Regular",tanggalKirim:"2025-08-25",paket:"PKT001",total:185000,perjalanan:[
+        {waktu:"25/08/2025 10:12:20",keterangan:"Penerimaan di Loket: UT Pusat, Pondok Cabe. Pengirim: Universitas Terbuka"},
+        {waktu:"25/08/2025 14:07:56",keterangan:"Tiba di Hub JNE: Tangerang Selatan"},
+        {waktu:"25/08/2025 16:30:10",keterangan:"Diteruskan ke Kantor Tujuan: Jakarta Selatan"}]},
+      {nomorDO:"DO2025-002",nama:"Siti Marlina",nim:"056789012",status:"Selesai",ekspedisi:"SiCepat Express",tanggalKirim:"2025-08-24",paket:"PKT003",total:192000,perjalanan:[
+        {waktu:"24/08/2025 09:05:12",keterangan:"Paket diterima di gudang UT Jakarta"},
+        {waktu:"24/08/2025 12:45:30",keterangan:"Dikirim ke kantor ekspedisi SiCepat"},
+        {waktu:"24/08/2025 16:20:10",keterangan:"Tiba di cabang ekspedisi Jakarta Selatan"},
+        {waktu:"25/08/2025 08:10:05",keterangan:"Selesai diantar. Penerima: Siti Marlina"}]},
+      {nomorDO:"DO2025-003",nama:"Doni Setiawan",nim:"067890123",status:"Dalam Perjalanan",ekspedisi:"J&T Express",tanggalKirim:"2025-08-27",paket:"PKT002",total:289000,perjalanan:[
+        {waktu:"27/08/2025 08:30:00",keterangan:"Penerimaan di Loket: UT Pusat, Pondok Cabe. Pengirim: Universitas Terbuka"},
+        {waktu:"27/08/2025 13:00:15",keterangan:"Tiba di sortir J&T: Jakarta Selatan"},
+        {waktu:"27/08/2025 18:45:22",keterangan:"Diteruskan ke wilayah tujuan: Depok"}]},
+      {nomorDO:"DO2025-004",nama:"Admin SITTA",nim:"099000001",status:"Diproses",ekspedisi:"JNE Express",tanggalKirim:"2025-08-28",paket:"PKT004",total:247000,perjalanan:[
+        {waktu:"28/08/2025 07:30:00",keterangan:"Delivery Order dibuat di sistem SITTA"},
+        {waktu:"28/08/2025 09:00:00",keterangan:"Paket sedang disiapkan di gudang UT"}]}
+    ],
+    pengguna: [
+      {id:1,nama:"Rina Wulandari",email:"rina@ut.ac.id",  password:"rina123",  role:"UPBJJ-UT",      lokasi:"UPBJJ Jakarta" },
+      {id:2,nama:"Agus Pranoto",  email:"agus@ut.ac.id",  password:"agus123",  role:"UPBJJ-UT",      lokasi:"UPBJJ Makassar"},
+      {id:3,nama:"Siti Marlina",  email:"siti@ut.ac.id",  password:"siti123",  role:"Puslaba",       lokasi:"Pusat"         },
+      {id:4,nama:"Doni Setiawan", email:"doni@ut.ac.id",  password:"doni123",  role:"Fakultas",      lokasi:"FISIP"         },
+      {id:5,nama:"Admin SITTA",   email:"admin@ut.ac.id", password:"admin123", role:"Administrator", lokasi:"Pusat"         }
+    ],
+    histori: [
+      {id:"HRT-001",tanggal:"2023-09-10",noDO:"DO2023-001",namaMahasiswa:"Rina Wulandari",ekspedisi:"JNE Regular",   total:185000,status:"Selesai"},
+      {id:"HRT-002",tanggal:"2023-09-12",noDO:"DO2023-002",namaMahasiswa:"Agus Pranoto",  ekspedisi:"Pos Indonesia", total:289000,status:"Selesai"},
+      {id:"HRT-003",tanggal:"2025-08-24",noDO:"DO2025-002",namaMahasiswa:"Siti Marlina",  ekspedisi:"SiCepat Express",total:192000,status:"Selesai"},
+      {id:"HRT-004",tanggal:"2025-08-25",noDO:"DO2025-001",namaMahasiswa:"Rina Wulandari",ekspedisi:"JNE Regular",   total:185000,status:"Dalam Perjalanan"},
+      {id:"HRT-005",tanggal:"2025-08-27",noDO:"DO2025-003",namaMahasiswa:"Doni Setiawan", ekspedisi:"J&T Express",   total:289000,status:"Dalam Perjalanan"},
+      {id:"HRT-006",tanggal:"2025-08-28",noDO:"DO2025-004",namaMahasiswa:"Admin SITTA",   ekspedisi:"JNE Express",   total:247000,status:"Diproses"}
+    ],
+    monitoringDO: [
+      {noDO:"DO2025-004",utDaerah:"UPBJJ Jakarta",    jumlahItem:5,status:"Diproses",        tanggal:"2025-08-28",progress:20 },
+      {noDO:"DO2025-003",utDaerah:"UPBJJ Depok",      jumlahItem:4,status:"Dalam Perjalanan",tanggal:"2025-08-27",progress:65 },
+      {noDO:"DO2025-001",utDaerah:"UPBJJ Jakarta",    jumlahItem:3,status:"Dalam Perjalanan",tanggal:"2025-08-25",progress:65 },
+      {noDO:"DO2025-002",utDaerah:"UPBJJ Bandung",    jumlahItem:3,status:"Selesai",         tanggal:"2025-08-24",progress:100},
+      {noDO:"DO2023-002",utDaerah:"UPBJJ Bandung",    jumlahItem:4,status:"Selesai",         tanggal:"2023-09-12",progress:100},
+      {noDO:"DO2023-001",utDaerah:"UPBJJ Jakarta Sel.",jumlahItem:3,status:"Selesai",        tanggal:"2023-09-10",progress:100}
+    ]
+  };
+
+  var _cache = null;
+
+  function loadData() {
+    if (_cache) return Promise.resolve(_cache);
+    // Coba fetch JSON (butuh server), jika gagal pakai fallback inline
+    return fetch('data/dataBahanAjar.json')
+      .then(function(res) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
+      .then(function(data) { _cache = data; return data; })
+      .catch(function() {
+        // Fallback: pakai data inline — tetap berfungsi buka via file://
+        _cache = FALLBACK;
+        return FALLBACK;
+      });
+  }
+
+  return { loadData: loadData };
+})();
+
+window.ApiService = ApiService;
